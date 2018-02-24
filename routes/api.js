@@ -1,10 +1,14 @@
-var router = require('express').Router();
-var utopian = require('utopian-api');
-var request = require('request');
+const router = require('express').Router();
+const utopian = require('utopian-api');
+const request = require('request');
+const utopian_api = require('../utopian_api');
 
 // CONSTANTS
 
-var CATEGORIES = [
+const UTOPISTA_BASE_URL = 'https://utopista.herokuapp.com';
+const UTOPIAN_BASE_URL = 'https://utopian.io';
+
+const CATEGORIES = [
   'all',
   'blog',
   'ideas',
@@ -18,6 +22,7 @@ var CATEGORIES = [
   'social',
   'graphics',
   'sub-projects',
+  'copywriting',
   'task-ideas',
   'task-bug-hunting',
   'task-translations',
@@ -31,20 +36,48 @@ var CATEGORIES = [
 // ENDPOINTS
 
 var UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
+var UTOPISTA_API_ENDPOINT = 'https://utopista.herokuapp.com/api';
+var UTOPISTA_MODERATORS = '/moderators';
+var UTOPISTA_SUPERVISORS = '/supervisors';
+var UTOPISTA_TEAMS = '/teams';
+var UTOPISTA_POSTS = '/posts';
+var UTOPISTA_POSTS_STATS = UTOPISTA_POSTS + '/stats';
+var UTOPISTA_POSTS_UNREVIEWED = UTOPISTA_POSTS + '/unreviewed';
+var UTOPISTA_SPONSORS = '/sponsors';
+var UTOPISTA_STATS = '/stats';
+
+// API INFO
+
+router.get('/', function (req, res) {
+  var response = {
+    app: 'utopista',
+    author: 'espoem',
+    routes: {
+      moderators: UTOPISTA_API_ENDPOINT + UTOPISTA_MODERATORS,
+      supervisors: UTOPISTA_API_ENDPOINT + UTOPISTA_SUPERVISORS,
+      teams: UTOPISTA_API_ENDPOINT + UTOPISTA_TEAMS,
+      posts: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS,
+      posts_stats: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_STATS,
+      posts_unreviewed: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_UNREVIEWED
+    }
+  };
+
+  res.json(response);
+});
 
 // MODERATORS ROUTES
 
-router.get('/moderators', function (req, res) {
-  var mods = {
+router.get(UTOPISTA_MODERATORS, (req, res) => {
+  let mods = {
     total: 0,
     results: []
   };
-  utopian.getModerators().then(function (moderators) {
-    moderators.results.forEach(function (mod) {
+  utopian_api.getModerators().then(moderators => {
+    for (const mod of moderators.results) {
       mods.results.push({
         _id: mod._id,
         account: mod.account,
-        referrer: mod.referrer || '',
+        referrer: mod.referrer,
         supervisor: mod.supermoderator === true,
         total_moderated: mod.total_moderated || 0,
         banned: mod.banned === true,
@@ -52,117 +85,71 @@ router.get('/moderators', function (req, res) {
         opted_out: mod.opted_out === true
       });
       mods.total += 1;
-    });
+    }
     res.json(mods);
   });
 });
 
-// temporary solution for case that user is not moderator
-// utopian.getModerator = (username) => {
-//     return new Promise((resolve, reject) => {
-//         utopian.getModerators().then((moderators) => {
-//             moderators.results.filter((moderator) => {
-//                 if (moderator.account === username && moderator.banned === false && moderator.reviewed === true) {
-//                     resolve([moderator])
-//                 }
-//             })
-//             resolve([])
-//         }).catch((err) => reject(err))
-//     })
-// }
-
-router.get('/moderators/:name', function (req, res) {
-  utopian.getModerator(req.params.name)
-    .then(function (moderators) {
-      res.json(moderators);
+router.get(UTOPISTA_MODERATORS + '/:name', function (req, res) {
+  utopian_api.getModerator(req.params.name)
+    .then(function (moderator) {
+      res.json(moderator);
     })
     .catch(function (err) {
       res.json(err);
     });
 });
 
-router.get('/supervisors', function (req, res) {
-  var sups = {
-    total: 0,
-    results: []
-  };
-  utopian.getModerators().then(function (moderators) {
-    sups.results = moderators.results.filter(function (mod) {
-      return mod.supermoderator === true;
-    });
-    sups.total = sups.results.length;
-    res.json(sups);
+router.get(UTOPISTA_SUPERVISORS, function (req, res) {
+  utopian_api.getSupervisors().then(data => {
+    res.json(data);
+  }).catch(err => {
+    res.json(err);
   });
 });
 
 // SPONSORS ROUTES
 
-// utopian.getSponsor = (username) => {
-//   return new Promise((resolve, reject) => {
-//     utopian.getSponsors().then((sponsors) => {
-//       sponsors.results.filter((sponsor) => {
-//         if (sponsor.account === username) {
-//           resolve([sponsor])
-//         }
-//       })
-//       resolve([])
-//     }).catch((err) => reject(err))
-//   })
-// }
-
-router.get('/sponsors', function (req, res) {
-  utopian.getSponsors()
+router.get(UTOPISTA_SPONSORS, function (req, res) {
+  utopian_api.getSponsors()
     .then(function (sponsors) {
       res.json(sponsors);
     });
 });
 
-router.get('/sponsors/:name', function (req, res) {
-  utopian.getSponsor(req.params.name)
+router.get(UTOPISTA_SPONSORS + '/:name', function (req, res) {
+  utopian_api.getSponsor(req.params.name)
     .then(function (sponsor) {
       res.json(sponsor);
     });
 });
 
 // TEAMS ROUTES
-router.get('/teams', function (req, res) {
-  var teams = {
-    total: 0,
-    results: {}
-  };
+router.get(UTOPISTA_TEAMS, function (req, res) {
+  utopian_api.getModeratorsTeams().then(data => {
+    res.json(data);
+  });
+});
 
-  utopian.getModerators().then(function (moderators) {
-    moderators.results.forEach(function (mod) {
-      if (mod.supermoderator || !mod.referrer) {
-        mod.moderators_count = 0;
-        mod.moderators = [];
-        teams.results[mod.account] = mod;
-      }
-    });
-
-    moderators.results.forEach(function (mod) {
-      if (!mod.supermoderator) {
-        if (mod.referrer) {
-          teams.results[mod.referrer].moderators.push(mod);
-          teams.results[mod.referrer].moderators_count += 1;
-        }
-      }
-    });
-
-    teams.total = Object.keys(teams.results).length;
-    res.json(teams);
+router.get(UTOPISTA_TEAMS + '/:name', function (req, res) {
+  utopian_api.getModeratorsTeam(req.params.name).then(data => {
+    res.json(data);
+  }).catch(err => {
+    res.json(err);
   });
 });
 
 // UTOPIAN STATS ROUTE
-router.get('/stats', function (req, res) {
+router.get(UTOPISTA_STATS, function (req, res) {
   utopian.getStats().then(function (stats) {
     res.json(stats);
+  }).catch(err => {
+    res.error(err);
   });
 });
 
 // POSTS ROUTE
-router.get('/posts', function (req, res) {
+router.get(UTOPISTA_POSTS, function (req, res) {
   var maxLimit = 20;
   var q = req.query;
   var limit = Number(q.limit);
@@ -196,7 +183,15 @@ router.get('/posts', function (req, res) {
   });
 });
 
-router.get('/posts/unreviewed', function (req, res) {
+router.get(UTOPISTA_POSTS_STATS, function (req, res) {
+  utopian_api.getPostsReviewStats().then(data => {
+    res.json(data);
+  }).catch(err => {
+    res.json(err);
+  });
+});
+
+router.get(UTOPISTA_POSTS_UNREVIEWED, function (req, res) {
   var promises = [];
   var response = {
     categories: {}
@@ -211,7 +206,7 @@ router.get('/posts/unreviewed', function (req, res) {
       response.categories[CATEGORIES[index]] = {
         total: catData,
         _links: {
-          self: [req.originalUrl, CATEGORIES[index]].join('/')
+          self: UTOPISTA_BASE_URL + req.originalUrl.replace(/\/$/, '') + '/' + CATEGORIES[index]
         }
       };
     });
@@ -222,39 +217,104 @@ router.get('/posts/unreviewed', function (req, res) {
   });
 });
 
-router.get('/posts/unreviewed/:category', function (req, res) {
-  var category = req.params.category;
-  var limit = 50;
-  var result = {
-    category: category,
-    results: []
+router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
+  const category = req.params.category;
+  const limit = 50;
+
+  const query = {
+    type: category || 'all',
+    limit: Number(req.query.limit) || limit,
+    skip: Number(req.query.skip) || 0,
+    filterBy: 'review'
   };
 
-  request(UTOPIAN_API_ENDPOINT + '/posts?filterBy=review&type=' + category + '&limit=' + limit, function (err, response, body) {
-    var data = JSON.parse(body);
-    data.results.forEach(function (value) {
+  console.log(query);
+  console.log(category);
+  console.log(req.query.skip);
+
+  let result = {
+    category: category,
+    total: 0,
+    results: [],
+    _links: {
+      self: `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${query.skip}`
+    }
+  };
+
+  utopian_api.getPosts(query).then(data => {
+    result.total = data.total;
+    for (const post of data.results) {
       result.results.push({
-        author: value.author,
-        title: value.title,
-        createdAt: value.created,
-        link: ['https://utopian.io', value.category, '@'+value.author, value.permlink].join('/')
+        author: post.author,
+        title: post.title,
+        createdAt: post.created,
+        category: post.json_metadata.type,
+        project: post.json_metadata.repository.full_name,
+        _links: {
+          utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
+        }
       });
-    });
+    }
+
+    let skip_next = query.skip + query.limit;
+    if (skip_next <= result.total) {
+      result._links.next = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_next}`;
+    }
+
+    let skip_prev = Math.max(query.skip - query.limit, 0);
+    if (query.skip > 0) {
+      result._links.prev = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_prev}`;
+    }
+
     res.json(result);
+  }).catch(err => {
+    res.json(err);
   });
 });
 
 function unreviewedPostsCountByCategory(category) {
-  var query = {
+  const query = {
     limit: 1,
     type: category || 'all',
     filterBy: 'review'
   };
 
   return new Promise(function (resolve, reject) {
-    utopian.getPosts(query).then(function (result) {
+    utopian_api.getPosts(query).then(function (result) {
       resolve(result.total);
     }).catch(function (err) {
+      reject(err);
+    });
+  });
+}
+
+function postsPendingCountByCategory(category, moderators) {
+  return new Promise((resolve, reject) => {
+    let query = {
+      limit: 1,
+      type: category,
+      status: 'pending'
+    };
+    let total = 0;
+    let promises = [];
+    moderators.forEach(moderator => {
+      query.moderator = moderator;
+      // console.log(category, moderator);
+      promises.push(utopian_api.getPosts({
+        limit: 1,
+        type: category,
+        status: 'pending',
+        moderator: moderator
+      }));
+    });
+
+    Promise.all(promises).then(data => {
+      data.forEach(count => {
+        console.log(total);
+        total += count;
+      });
+      resolve(total);
+    }).catch(err => {
       reject(err);
     });
   });
