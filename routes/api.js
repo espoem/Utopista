@@ -1,37 +1,12 @@
 const router = require('express').Router();
 const utopian = require('utopian-api');
-const request = require('request');
+const constants = require('../constants');
 const utopian_api = require('../utopian_api');
 
 // CONSTANTS
 
 const UTOPISTA_BASE_URL = 'https://utopista.herokuapp.com';
 const UTOPIAN_BASE_URL = 'https://utopian.io';
-
-const CATEGORIES = [
-  'all',
-  'blog',
-  'ideas',
-  'bug-hunting',
-  'tutorials',
-  'video-tutorials',
-  'translations',
-  'analysis',
-  'development',
-  'documentation',
-  'social',
-  'graphics',
-  'sub-projects',
-  'copywriting',
-  'task-ideas',
-  'task-bug-hunting',
-  'task-translations',
-  'task-analysis',
-  'task-social',
-  'task-graphics',
-  'task-development',
-  'task-documentation'
-];
 
 // ENDPOINTS
 
@@ -197,16 +172,16 @@ router.get(UTOPISTA_POSTS_UNREVIEWED, function (req, res) {
     categories: {}
   };
 
-  CATEGORIES.forEach(function (category) {
+  constants.CATEGORIES.forEach(function (category) {
     promises.push(unreviewedPostsCountByCategory(category));
   });
 
   Promise.all(promises).then(function (data) {
     data.forEach(function (catData, index) {
-      response.categories[CATEGORIES[index]] = {
+      response.categories[constants.CATEGORIES[index]] = {
         total: catData,
         _links: {
-          self: UTOPISTA_BASE_URL + req.originalUrl.replace(/\/$/, '') + '/' + CATEGORIES[index]
+          self: UTOPISTA_BASE_URL + req.originalUrl.replace(/\/$/, '') + '/' + constants.CATEGORIES[index]
         }
       };
     });
