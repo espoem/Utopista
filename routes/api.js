@@ -155,6 +155,8 @@ router.get(UTOPISTA_POSTS, function (req, res) {
     }
 
     res.json(data);
+  }).catch(function (err) {
+    res.json({error: err});
   });
 });
 
