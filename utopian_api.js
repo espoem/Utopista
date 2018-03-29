@@ -1,6 +1,6 @@
 const constants = require('./constants');
 
-const UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
+const UTOPIAN_API_ENDPOINT = 'https://v2.api.utopian.io/api';
 const UTOPIAN_API_POSTS = UTOPIAN_API_ENDPOINT + '/posts';
 const UTOPIAN_API_MODERATORS = UTOPIAN_API_ENDPOINT + '/moderators';
 const UTOPIAN_API_SPONSORS = UTOPIAN_API_ENDPOINT + '/sponsors';
