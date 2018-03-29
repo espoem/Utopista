@@ -10,8 +10,8 @@
   "author": "Martin Smid",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.2",
-    "request": "^2.83.0",
+    "express": "^4.16.3",
+    "request": "^2.85.0",
     "utopian-api": "^0.4.1"
   }
 }
