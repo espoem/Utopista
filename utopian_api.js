@@ -37,7 +37,7 @@ const requestURL = url => {
     protocol: myURL.protocol,
     path: myURL.pathname + myURL.search,
     headers: {
-      'x-api-developer': config.app['x-api-developer'],
+      'x-api-key-id': config.app['x-api-key-id'],
       'x-api-key': config.app['x-api-key'],
       'origin': config.app.origin
     }
