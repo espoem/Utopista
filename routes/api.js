@@ -2,16 +2,17 @@ const router = require('express').Router();
 const utopian = require('utopian-api');
 const constants = require('../constants');
 const utopian_api = require('../utopian_api');
+const config = require('../config');
 
 // CONSTANTS
 
-const UTOPISTA_BASE_URL = 'https://utopista.herokuapp.com';
+const UTOPISTA_BASE_URL = config.app.origin;
 const UTOPIAN_BASE_URL = 'https://utopian.io';
 
 // ENDPOINTS
 
-var UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
-var UTOPISTA_API_ENDPOINT = 'https://utopista.herokuapp.com/api';
+// var UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
+var UTOPISTA_API_ENDPOINT = UTOPISTA_BASE_URL + '/api';
 var UTOPISTA_MODERATORS = '/moderators';
 var UTOPISTA_SUPERVISORS = '/supervisors';
 var UTOPISTA_TEAMS = '/teams';
@@ -156,7 +157,7 @@ router.get(UTOPISTA_POSTS, function (req, res) {
 
     res.json(data);
   }).catch(function (err) {
-    res.json({error: err});
+    res.json({error: err.message});
   });
 });
 
