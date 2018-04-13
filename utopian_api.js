@@ -1,4 +1,6 @@
 const constants = require('./constants');
+const {URL} = require('url');
+const config = require('./config');
 
 const UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
 const UTOPIAN_API_POSTS = UTOPIAN_API_ENDPOINT + '/posts';
@@ -29,11 +31,23 @@ utopian.encodeQueryData = parameters => {
  * @param {string} url string url to fetch
  */
 const requestURL = url => {
+  const myURL = new URL(url);
+  const options = {
+    hostname: myURL.hostname,
+    protocol: myURL.protocol,
+    path: myURL.pathname + myURL.search,
+    headers: {
+      'x-api-developer': config.app['x-api-developer'],
+      'x-api-key': config.app['x-api-key'],
+      'origin': config.app.origin
+    }
+  };
+
   // return new pending promise
   return new Promise((resolve, reject) => {
     // select http or https module, depending on reqested url
     const lib = url.startsWith('https') ? require('https') : require('http');
-    const request = lib.get(url, response => {
+    const request = lib.get(options, response => {
       // handle http errors
       if (response.statusCode < 200 || response.statusCode > 299) {
         reject(new Error(`Failed to load page, status code: ${response.statusCode}`));

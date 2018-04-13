@@ -10,6 +10,7 @@
   "author": "Martin Smid",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^5.0.1",
     "express": "^4.16.3",
     "request": "^2.85.0",
     "utopian-api": "^0.4.1"
