@@ -1,0 +1,29 @@
+<div class="card-columns">
+    {{#each posts}}
+    <div class="card">
+        <img class="card-img-top" src="{{parseImage this.body}}{{!--{{{this.json_metadata.image.[0]}}}--}}" alt="Img">
+        <div class="card-body">
+            <h5 class="card-title">
+                {{this.title}} <small>by <a href="/user/{{this.author}}">{{this.author}}</a></small>
+            </h5>
+            <a href="/project/{{this.json_metadata.repository.full_name}}" class="btn btn-block btn-outline-primary btn-sm">{{this.json_metadata.repository.full_name}}</a>
+            <hr>
+            <p class="card-text">
+                <small class="text-muted"><span class="float-left">{{#if this.moderator}} Reviewed by <a href="/moderator/{{this.moderator}}">{{this.moderator}}</a>{{else}}Not reviewed yet{{/if}}<br/>
+                {{#if this.json_metadata.moderator.time}}{{formatDate this.json_metadata.moderator.time}}{{else}} Posted {{formatDate this.created}}{{/if}}</span></small>
+            </p>
+            <div class="float-right mb-3">
+                <div class="btn-group">
+                    <a href="https://utopian.io{{url}}" class="btn btn-primary" target="_blank">View</a>
+                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" target="_blank" href="https://phist.steemdata.com/history?identifier={{url}}">Phist</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{/each}}
+</div>

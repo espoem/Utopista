@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const utopian = require('utopian-api');
 const constants = require('../constants');
 const utopian_api = require('../utopian_api');
 const config = require('../config');
@@ -117,7 +116,7 @@ router.get(UTOPISTA_TEAMS + '/:name', function (req, res) {
 
 // UTOPIAN STATS ROUTE
 router.get(UTOPISTA_STATS, function (req, res) {
-  utopian.getStats().then(function (stats) {
+  utopian_api.getStats().then(function (stats) {
     res.json(stats);
   }).catch(err => {
     res.error(err);
@@ -143,7 +142,7 @@ router.get(UTOPISTA_POSTS, function (req, res) {
   var auxLimit = limit;
   var promises = [];
   while (auxLimit > 0) {
-    promises.push(utopian.getPosts(query));
+    promises.push(utopian_api.getPosts(query));
     query.skip = Number(query.skip) + maxLimit;
     auxLimit -= maxLimit;
     query.limit = Math.min(auxLimit, maxLimit);

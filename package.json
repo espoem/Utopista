@@ -12,7 +12,8 @@
   "dependencies": {
     "dotenv": "^5.0.1",
     "express": "^4.16.3",
-    "request": "^2.85.0",
-    "utopian-api": "^0.4.1"
+    "express-handlebars": "^3.0.0",
+    "moment": "^2.22.0",
+    "request": "^2.85.0"
   }
 }

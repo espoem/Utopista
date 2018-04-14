@@ -6,6 +6,9 @@ const UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
 const UTOPIAN_API_POSTS = UTOPIAN_API_ENDPOINT + '/posts';
 const UTOPIAN_API_MODERATORS = UTOPIAN_API_ENDPOINT + '/moderators';
 const UTOPIAN_API_SPONSORS = UTOPIAN_API_ENDPOINT + '/sponsors';
+const UTOPIAN_API_STATS = UTOPIAN_API_ENDPOINT + '/stats';
+
+const GITHUB_REPO_URL = 'https://api.github.com/repos/';
 
 const utopian = {};
 
@@ -30,7 +33,7 @@ utopian.encodeQueryData = parameters => {
  * https://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
  * @param {string} url string url to fetch
  */
-const requestURL = url => {
+const requestURLUtopian = url => {
   const myURL = new URL(url);
   const options = {
     hostname: myURL.hostname,
@@ -40,6 +43,38 @@ const requestURL = url => {
       'x-api-key-id': config.app['x-api-key-id'],
       'x-api-key': config.app['x-api-key'],
       'origin': config.app.origin
+    }
+  };
+
+  // return new pending promise
+  return new Promise((resolve, reject) => {
+    // select http or https module, depending on reqested url
+    const lib = url.startsWith('https') ? require('https') : require('http');
+    const request = lib.get(options, response => {
+      // handle http errors
+      if (response.statusCode < 200 || response.statusCode > 299) {
+        reject(new Error(`Failed to load page, status code: ${response.statusCode}`));
+      }
+      // temporary data holder
+      const body = [];
+      // on every content chunk, push it to the data array
+      response.on('data', chunk => body.push(chunk));
+      // we are done, resolve promise with those joined chunks
+      response.on('end', () => resolve(body.join('')));
+    });
+    // handle connection errors of the request
+    request.on('error', err => reject(err));
+  });
+};
+
+const requestURL = url => {
+  const myURL = new URL(url);
+  const options = {
+    hostname: myURL.hostname,
+    protocol: myURL.protocol,
+    path: myURL.pathname + myURL.search,
+    headers: {
+      "User-Agent": ''
     }
   };
 
@@ -81,7 +116,7 @@ utopian.getPosts = params => {
   }
 
   return new Promise((resolve, reject) => {
-    requestURL(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(params)).then(data => {
+    requestURLUtopian(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(params)).then(data => {
       resolve(JSON.parse(data));
     }).catch(err => {
       reject(err);
@@ -143,7 +178,7 @@ utopian.getPost = (author, permlink) => {
   }
 
   return new Promise((resolve, reject) => {
-    requestURL(`${UTOPIAN_API_POSTS}/${author}/${permlink}`).then(data => {
+    requestURLUtopian(`${UTOPIAN_API_POSTS}/${author}/${permlink}`).then(data => {
       resolve(JSON.parse(data));
     }).catch(err => {
       reject(err);
@@ -154,7 +189,7 @@ utopian.getPost = (author, permlink) => {
 // https://utopian.docs.apiary.io/#reference/0/moderators-collection/list-all-moderators
 utopian.getModerators = () => {
   return new Promise((resolve, reject) => {
-    requestURL(UTOPIAN_API_MODERATORS).then(data => {
+    requestURLUtopian(UTOPIAN_API_MODERATORS).then(data => {
       resolve(JSON.parse(data));
     }).catch(err => {
       reject(err);
@@ -242,7 +277,7 @@ utopian.getModeratorsTeam = supervisor => {
 // https://utopian.docs.apiary.io/#reference/0/sponsors-collection/list-sponsors
 utopian.getSponsors = () => {
   return new Promise((resolve, reject) => {
-    requestURL(UTOPIAN_API_SPONSORS).then(data => {
+    requestURLUtopian(UTOPIAN_API_SPONSORS).then(data => {
       resolve(JSON.parse(data));
     }).catch(err => {
       reject(err);
@@ -262,6 +297,53 @@ utopian.getSponsor = (name) => {
     }).catch(err => {
       reject(err);
     });
+  });
+};
+
+
+/**
+ * @method getPostsByGithubProject: Return list of posts related to given github repository
+ * @argument {string} repoName: repository name, i.e.: utopian-io/utopian-api-npm
+ * @argument {Object} options: options for the data (optional)
+ * @returns Promise object array of posts
+ */
+utopian.getPostsByGithubProject = (repoName, options) => {
+  return new Promise((resolve, reject) => {
+    return getGithubRepoIdByRepoName(repoName)
+      .then(projectId => {
+        return utopian.getPosts(Object.assign({
+          section: 'project',
+          sortBy: 'created',
+          platform: 'github',
+          projectId,
+          type: 'all'
+        }, options || {})).then(resolve).catch(reject);
+      }).catch(reject);
+  });
+};
+
+
+/**
+ * @method getGithubRepoIdByRepoName: Return github repo id by given github repo
+ * @argument {string} repoName: repository full name, i.e.: utopian-io/utopian-api-npm
+ * @returns Promise object array of posts
+ */
+function getGithubRepoIdByRepoName(repoName) {
+  return new Promise((resolve, reject) => {
+    requestURL(GITHUB_REPO_URL + repoName).then((data) => {
+      resolve(JSON.parse(data).id);
+    }).catch((err) => {
+      console.log('error in getting github repo', GITHUB_REPO_URL + repoName);
+      reject(err);
+    });
+  });
+}
+
+utopian.getStats = () => {
+  return new Promise((resolve, reject) => {
+    requestURLUtopian(UTOPIAN_API_STATS).then((data) => {
+      resolve(JSON.parse(data));
+    }).catch((err) => reject(err));
   });
 };
 
