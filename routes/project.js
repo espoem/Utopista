@@ -21,7 +21,7 @@ router.get('/:ghuser/:ghproject/:status?', (req, res) => {
   req.params.status === 'pending' ? query.filterBy = 'review' : query.status = req.params.status || 'any';
 
   utopian.getPostsByGithubProject(projectFullName, query).then((posts) => {
-    console.log('calling get posts by github');
+    // console.log('calling get posts by github');
     for (let i = 0; i < posts.results.length; i++) {
       contributions.push(posts.results[i]);
     }

@@ -205,9 +205,9 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
     filterBy: 'review'
   };
 
-  console.log(query);
-  console.log(category);
-  console.log(req.query.skip);
+  // console.log(query);
+  // console.log(category);
+  // console.log(req.query.skip);
 
   let result = {
     category: category,
@@ -287,7 +287,7 @@ function postsPendingCountByCategory(category, moderators) {
 
     Promise.all(promises).then(data => {
       data.forEach(count => {
-        console.log(total);
+        // console.log(total);
         total += count;
       });
       resolve(total);

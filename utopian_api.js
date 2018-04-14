@@ -333,7 +333,7 @@ function getGithubRepoIdByRepoName(repoName) {
     requestURL(GITHUB_REPO_URL + repoName).then((data) => {
       resolve(JSON.parse(data).id);
     }).catch((err) => {
-      console.log('error in getting github repo', GITHUB_REPO_URL + repoName);
+      // console.log('error in getting github repo', GITHUB_REPO_URL + repoName);
       reject(err);
     });
   });
