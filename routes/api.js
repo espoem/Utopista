@@ -270,54 +270,55 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
     type: category || 'all',
     limit: Number(req.query.limit) || limit,
     skip: Number(req.query.skip) || 0,
-    filterBy: 'review',
-    section: 'project',
-    platform: 'github'
+    filterBy: 'review'
   };
 
-  utopian_api.getGithubRepoIdByRepoName(req.query.project).then(id => {
-    query.projectId = id;
+  if (req.query.project) {
+    utopian_api.getGithubRepoIdByRepoName(req.query.project).then(id => {
+      query.projectId = id;
+      query.section = 'project';
+      query.platform = 'github';
+      utopian_api.getPosts(query).then(data => {
+        res.send(createTable(data));
+      }).catch(err => {
+        res.json({error: err});
+      });
+    });
+  } else {
     utopian_api.getPosts(query).then(data => {
-      let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
-        '<table><thead><tr>' +
-        '<th>Category</th>' +
-        '<th>Author</th>' +
-        '<th>Title</th>' +
-        '<th>Created At</th>' +
-        '<th>Project</th>' +
-        '<th>Link</th>' +
-        '</tr></thead><tbody>';
-
-      for (const post of data.results) {
-        const link = [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/');
-        html += '<tr>' +
-          '<td>' + post.json_metadata.type + '</td>' +
-          '<td>' + post.author + '</td>' +
-          '<td>' + post.title + '</td>' +
-          '<td>' + post.created + '</td>' +
-          '<td>' + post.json_metadata.repository.full_name + '</td>' +
-          '<td><a href="' + link + '">View Post</a></td>' +
-          '</tr>';
-
-        // result.results.push({
-        //   author: post.author,
-        //   title: post.title,
-        //   createdAt: post.created,
-        //   category: post.json_metadata.type,
-        //   project: post.json_metadata.repository.full_name,
-        //   _links: {
-        //     utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
-        //   }
-        // });
-      }
-
-      html += '</tbody></table>';
-      res.send(html);
+      res.send(createTable(data));
     }).catch(err => {
       res.json({error: err});
     });
-  });
+  }
 });
+
+function createTable(data) {
+  let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
+    '<table><thead><tr>' +
+    '<th>Category</th>' +
+    '<th>Author</th>' +
+    '<th>Title</th>' +
+    '<th>Created At</th>' +
+    '<th>Project</th>' +
+    '<th>Link</th>' +
+    '</tr></thead><tbody>';
+
+  for (const post of data.results) {
+    const link = [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/');
+    html += '<tr>' +
+      '<td>' + post.json_metadata.type + '</td>' +
+      '<td>' + post.author + '</td>' +
+      '<td>' + post.title + '</td>' +
+      '<td>' + post.created + '</td>' +
+      '<td>' + post.json_metadata.repository.full_name + '</td>' +
+      '<td><a href="' + link + '">View Post</a></td>' +
+      '</tr>';
+  }
+
+  html += '</tbody></table>';
+  return html;
+}
 
 router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
   utopian_api.getPost(req.params.author, req.params.post).then(function (post) {
