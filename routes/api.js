@@ -123,6 +123,14 @@ router.get(UTOPISTA_STATS, function (req, res) {
   });
 });
 
+router.get('/users/:user', function (req, res) {
+  utopian_api.getUser(req.params.user).then(user => {
+    res.json(user);
+  }).catch(err => {
+    res.json({error: err});
+  });
+});
+
 // POSTS ROUTE
 router.get(UTOPISTA_POSTS, function (req, res) {
   var maxLimit = 20;
@@ -160,6 +168,10 @@ router.get(UTOPISTA_POSTS, function (req, res) {
   });
 });
 
+// router.get(UTOPISTA_POSTS + '/all', function (req, res) {
+//   utopian_api.getPo
+// });
+
 router.get(UTOPISTA_POSTS_STATS, function (req, res) {
   utopian_api.getPostsReviewStats().then(data => {
     res.json(data);
@@ -190,7 +202,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED, function (req, res) {
 
     res.json(response);
   }).catch(function (err) {
-    res.json({error: err});
+    res.json({error: err.message});
   });
 });
 
@@ -245,7 +257,73 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
 
     res.json(result);
   }).catch(err => {
-    res.json(err);
+    // res.json({error: err.message});
+    res.json('Big Error');
+  });
+});
+
+router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
+  const category = req.params.category;
+  const limit = 50;
+
+  const query = {
+    type: category || 'all',
+    limit: Number(req.query.limit) || limit,
+    skip: Number(req.query.skip) || 0,
+    filterBy: 'review',
+    section: 'project',
+    platform: 'github'
+  };
+
+  utopian_api.getGithubRepoIdByRepoName(req.query.project).then(id => {
+    query.projectId = id;
+    utopian_api.getPosts(query).then(data => {
+      let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
+        '<table><thead><tr>' +
+        '<th>Category</th>' +
+        '<th>Author</th>' +
+        '<th>Title</th>' +
+        '<th>Created At</th>' +
+        '<th>Project</th>' +
+        '<th>Link</th>' +
+        '</tr></thead><tbody>';
+
+      for (const post of data.results) {
+        const link = [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/');
+        html += '<tr>' +
+          '<td>' + post.json_metadata.type + '</td>' +
+          '<td>' + post.author + '</td>' +
+          '<td>' + post.title + '</td>' +
+          '<td>' + post.created + '</td>' +
+          '<td>' + post.json_metadata.repository.full_name + '</td>' +
+          '<td><a href="' + link + '">View Post</a></td>' +
+          '</tr>';
+
+        // result.results.push({
+        //   author: post.author,
+        //   title: post.title,
+        //   createdAt: post.created,
+        //   category: post.json_metadata.type,
+        //   project: post.json_metadata.repository.full_name,
+        //   _links: {
+        //     utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
+        //   }
+        // });
+      }
+
+      html += '</tbody></table>';
+      res.send(html);
+    }).catch(err => {
+      res.json({error: err});
+    });
+  });
+});
+
+router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
+  utopian_api.getPost(req.params.author, req.params.post).then(function (post) {
+    res.json(post);
+  }).catch(err => {
+    res.json({error: err});
   });
 });
 

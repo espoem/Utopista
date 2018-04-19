@@ -74,7 +74,7 @@ const requestURL = url => {
     protocol: myURL.protocol,
     path: myURL.pathname + myURL.search,
     headers: {
-      "User-Agent": ''
+      'User-Agent': ''
     }
   };
 
@@ -123,6 +123,32 @@ utopian.getPosts = params => {
     });
   });
 };
+
+// utopian.getAllPosts = () => {
+//   return new Promise((resolve, reject) => {
+//
+//   });
+// };
+//
+// function getPostsByStatus(status) {
+//   const limit = 1000;
+//   let posts = [];
+//   let skip = 0;
+//   let total = 0;
+//   let query = {
+//     limit: 1
+//   };
+//
+//   if (status === 'pending') {
+//     query.filterBy = 'review';
+//   } else {
+//     query.status = status;
+//   }
+//
+//   return new Promise((resolve, reject) => {
+//     utopian.getPosts(query).then();
+//   })
+// }
 
 utopian.getPostsReviewStats = () => {
   return new Promise((resolve, reject) => {
@@ -309,7 +335,7 @@ utopian.getSponsor = (name) => {
  */
 utopian.getPostsByGithubProject = (repoName, options) => {
   return new Promise((resolve, reject) => {
-    return getGithubRepoIdByRepoName(repoName)
+    return utopian.getGithubRepoIdByRepoName(repoName)
       .then(projectId => {
         return utopian.getPosts(Object.assign({
           section: 'project',
@@ -328,7 +354,7 @@ utopian.getPostsByGithubProject = (repoName, options) => {
  * @argument {string} repoName: repository full name, i.e.: utopian-io/utopian-api-npm
  * @returns Promise object array of posts
  */
-function getGithubRepoIdByRepoName(repoName) {
+utopian.getGithubRepoIdByRepoName = (repoName) => {
   return new Promise((resolve, reject) => {
     requestURL(GITHUB_REPO_URL + repoName).then((data) => {
       resolve(JSON.parse(data).id);
@@ -337,13 +363,21 @@ function getGithubRepoIdByRepoName(repoName) {
       reject(err);
     });
   });
-}
+};
 
 utopian.getStats = () => {
   return new Promise((resolve, reject) => {
     requestURLUtopian(UTOPIAN_API_STATS).then((data) => {
       resolve(JSON.parse(data));
     }).catch((err) => reject(err));
+  });
+};
+
+utopian.getUser = (user) => {
+  return new Promise((resolve, reject) => {
+    requestURLUtopian(UTOPIAN_API_ENDPOINT + '/users/' + user).then(data => {
+      resolve(JSON.parse(data));
+    }).catch(err => reject(err));
   });
 };
 
