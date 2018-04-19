@@ -285,6 +285,10 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
       });
     });
   } else {
+    if (req.query.author) {
+      query.section = 'author';
+      query.author = req.query.author;
+    }
     utopian_api.getPosts(query).then(data => {
       res.send(createTable(data));
     }).catch(err => {
