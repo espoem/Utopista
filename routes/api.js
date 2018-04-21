@@ -239,6 +239,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
         createdAt: post.created,
         category: post.json_metadata.type,
         project: post.json_metadata.repository.full_name,
+        score: (post.json_metadata.score ? +post.json_metadata.score : 0),
         _links: {
           utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
         }
@@ -305,6 +306,7 @@ function createTable(data) {
     '<th>Title</th>' +
     '<th>Created At</th>' +
     '<th>Project</th>' +
+    '<th>Score</th>' +
     '<th>Link</th>' +
     '</tr></thead><tbody>';
 
@@ -316,6 +318,7 @@ function createTable(data) {
       '<td>' + post.title + '</td>' +
       '<td>' + post.created + '</td>' +
       '<td>' + post.json_metadata.repository.full_name + '</td>' +
+      '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
   }
