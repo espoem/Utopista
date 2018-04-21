@@ -107,13 +107,15 @@ utopian.getPosts = params => {
     params = {};
   }
 
-  if (!params.limit || params.limit < 1 || params.limit > 1000) {
+
+  if (!params.limit || parseInt(params.limit) < 1 || parseInt(params.limit) > 1000) {
     params.limit = 50;
   }
 
-  if (!params.skip || params.skip < 0) {
-    params.skip = 0;
-  }
+  // if (!params.skip || params.skip < 0) {
+  //   params.skip = 0;
+  // }
+  params.skip = 0;
 
   return new Promise((resolve, reject) => {
     requestURLUtopian(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(params)).then(data => {

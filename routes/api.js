@@ -28,12 +28,12 @@ router.get('/', function (req, res) {
     app: 'utopista',
     author: 'espoem',
     routes: {
-      moderators: UTOPISTA_API_ENDPOINT + UTOPISTA_MODERATORS,
-      supervisors: UTOPISTA_API_ENDPOINT + UTOPISTA_SUPERVISORS,
-      teams: UTOPISTA_API_ENDPOINT + UTOPISTA_TEAMS,
-      posts: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS,
-      posts_stats: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_STATS,
-      posts_unreviewed: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_UNREVIEWED
+      // moderators: UTOPISTA_API_ENDPOINT + UTOPISTA_MODERATORS,
+      // supervisors: UTOPISTA_API_ENDPOINT + UTOPISTA_SUPERVISORS,
+      // teams: UTOPISTA_API_ENDPOINT + UTOPISTA_TEAMS,
+      // posts: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS,
+      // posts_stats: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_STATS,
+      // posts_unreviewed: UTOPISTA_API_ENDPOINT + UTOPISTA_POSTS_UNREVIEWED
     }
   };
 
@@ -131,45 +131,42 @@ router.get('/users/:user', function (req, res) {
   });
 });
 
-// POSTS ROUTE
-router.get(UTOPISTA_POSTS, function (req, res) {
-  var maxLimit = 20;
-  var q = req.query;
-  var limit = Number(q.limit);
-  limit = limit > 0 ? limit : maxLimit;
-  var query = {
-    limit: limit > maxLimit ? maxLimit : limit,
-    skip: Number(q.skip) || 0,
-    section: q.section || 'all',
-    type: q.type || q.category || 'all',
-    sortBy: q.sortBy || 'created',
-    filterBy: q.filterBy || 'any',
-    status: q.status || 'any'
-  };
+// // POSTS ROUTE
+// router.get(UTOPISTA_POSTS, function (req, res) {
+//   var maxLimit = 20;
+//   var q = req.query;
+//   var limit = Number(q.limit);
+//   limit = limit > 0 ? limit : maxLimit;
+//   // limit = limit > 100 ? 100 : limit; // temporary restriction
+//   var query = {
+//     limit: limit > maxLimit ? maxLimit : limit,
+//     skip: Number(q.skip) || 0,
+//     section: q.section || 'all',
+//     type: q.type || q.category || 'all',
+//     sortBy: q.sortBy || 'created',
+//     filterBy: q.filterBy || 'any',
+//     status: q.status || 'any'
+//   };
 
-  var auxLimit = limit;
-  var promises = [];
-  while (auxLimit > 0) {
-    promises.push(utopian_api.getPosts(query));
-    query.skip = Number(query.skip) + maxLimit;
-    auxLimit -= maxLimit;
-    query.limit = Math.min(auxLimit, maxLimit);
-  }
+//   var auxLimit = limit;
+//   var promises = [];
+//   while (auxLimit > 0) {
+//     promises.push(utopian_api.getPosts(query));
+//     query.skip = Number(query.skip) + maxLimit;
+//     auxLimit -= maxLimit;
+//     query.limit = Math.min(auxLimit, maxLimit);
+//   }
 
-  Promise.all(promises).then(function (posts) {
-    var data = posts ? posts[0] : {total: 0, results: []};
-    for (var i = 1; i < posts.length; i++) {
-      data.results = data.results.concat(posts[i].results);
-    }
+//   Promise.all(promises).then(function (posts) {
+//     var data = posts ? posts[0] : {total: 0, results: []};
+//     for (var i = 1; i < posts.length; i++) {
+//       data.results = data.results.concat(posts[i].results);
+//     }
 
-    res.json(data);
-  }).catch(function (err) {
-    res.json({error: err.message});
-  });
-});
-
-// router.get(UTOPISTA_POSTS + '/all', function (req, res) {
-//   utopian_api.getPo
+//     res.json(data);
+//   }).catch(function (err) {
+//     res.json({error: err.message});
+//   });
 // });
 
 router.get(UTOPISTA_POSTS_STATS, function (req, res) {
