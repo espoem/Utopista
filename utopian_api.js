@@ -107,7 +107,7 @@ utopian.getPosts = params => {
     params = {};
   }
 
-  if (!params.limit || params.limit < 1) {
+  if (!params.limit || params.limit < 1 || params.limit > 1000) {
     params.limit = 50;
   }
 
