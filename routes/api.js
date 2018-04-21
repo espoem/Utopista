@@ -306,6 +306,7 @@ function createTable(data) {
     '<th>Project</th>' +
     '<th>Score</th>' +
     '<th>Influence</th>' +
+    '<th>Vote Queue</th>' +
     '<th>Link</th>' +
     '</tr></thead><tbody>';
 
@@ -319,12 +320,24 @@ function createTable(data) {
       '<td>' + post.json_metadata.repository.full_name + '</td>' +
       '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
       '<td>' + (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0) + '</td>' +
+      '<td>' + voteQueueStatus(post) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
   }
 
   html += '</tbody></table>';
   return html;
+}
+
+function voteQueueStatus(post) {
+  let status = 'Not in queue';
+  if (post.json_metadata && post.json_metadata.score >= 80 && post.json_metadata.total_influence >= 60) {
+    status = 'To be in queue';
+    if (post.created >= new Date(now.getTime() - (48) * 60 * 60 * 1000).toISOString()) {
+      status = 'In queue';
+    }
+  }
+  return status;
 }
 
 router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
