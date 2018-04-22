@@ -336,7 +336,7 @@ function voteQueueStatus(post) {
   let status = 'Not in queue';
   if (post.json_metadata && post.json_metadata.score >= 80 && post.json_metadata.total_influence >= 60) {
     status = 'To be in queue';
-    if (post.created >= new Date(now.getTime() - (48) * 60 * 60 * 1000).toISOString()) {
+    if (post.created <= new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) {
       status = 'In queue';
     }
   }
