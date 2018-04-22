@@ -292,7 +292,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
     utopian_api.getPosts(query).then(data => {
       res.send(createTable(data));
     }).catch(err => {
-      res.json({error: err});
+      res.json({error: err.message});
     });
   }
 });
