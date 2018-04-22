@@ -238,6 +238,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
         project: post.json_metadata.repository.full_name,
         score: (post.json_metadata.score ? +post.json_metadata.score : 0),
         influence : (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0),
+        scorers:  (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0),
         _links: {
           utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
         }
@@ -306,6 +307,7 @@ function createTable(data) {
     '<th>Project</th>' +
     '<th>Score</th>' +
     '<th>Influence</th>' +
+    '<th>Scorers</th>' +
     '<th>Vote Queue</th>' +
     '<th>Link</th>' +
     '</tr></thead><tbody>';
@@ -320,6 +322,7 @@ function createTable(data) {
       '<td>' + post.json_metadata.repository.full_name + '</td>' +
       '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
       '<td>' + (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0) + '</td>' +
+      '<td>' + (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0) + '</td>' +
       '<td>' + voteQueueStatus(post) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
