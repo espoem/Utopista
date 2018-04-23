@@ -338,6 +338,13 @@ function voteQueueStatus(post) {
     status = 'To be in queue';
     if (post.created <= new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) {
       status = 'In queue';
+      if (post.active_votes) {
+        post.active_votes.forEach(vote => {
+          if (vote.voter === 'utopian-io') {
+            status = 'Voted';
+          }
+        })
+      }
     }
   }
   return status;
