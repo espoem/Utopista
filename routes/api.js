@@ -235,7 +235,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
         title: post.title,
         createdAt: post.created,
         category: post.json_metadata.type,
-        project: post.json_metadata.repository.full_name,
+        project: (post.json_metadata.repository ? post.json_metadata.repository.full_name : ""),
         score: (post.json_metadata.score ? +post.json_metadata.score : 0),
         influence : (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0),
         scorers:  (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0),
@@ -283,7 +283,7 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
       }).catch(err => {
         res.json({error: err});
       });
-    });
+    }).catch(err => res.json({error: err.message}));
   } else {
     if (req.query.author) {
       query.section = 'author';
@@ -319,7 +319,7 @@ function createTable(data) {
       '<td>' + post.author + '</td>' +
       '<td>' + post.title + '</td>' +
       '<td>' + post.created + '</td>' +
-      '<td>' + post.json_metadata.repository.full_name + '</td>' +
+      '<td>' + (post.json_metadata.repository ? post.json_metadata.repository.full_name : "") + '</td>' +
       '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
       '<td>' + (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0) + '</td>' +
       '<td>' + (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0) + '</td>' +
