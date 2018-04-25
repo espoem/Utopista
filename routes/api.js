@@ -274,16 +274,14 @@ router.get(UTOPISTA_POSTS + '/reviewed/:category/table', function(req, res) {
   };
 
   utopian_api.getPosts(query).then(data => {
-    // console.log(data[0])
-    // if (req.params.sortBy) {
-    //   if (req.params.sortBy === "score") {
-    //     data.data_results = data.data_results.sort((a, b) => +a.json_metadata.score - (+b.json_metadata.score));
-    //     // console.log(data[0])
-    //   }
-    // }
+    if (req.query.sortBy === "score") {
+      data.results = data.results.sort((a, b) => -(a.json_metadata.score < b.json_metadata.score ? -1 : (a.json_metadata.score > b.json_metadata.score ? 1 : 0)));
+    } else if (req.query.sortBy === "influence") {
+      data.results = data.results.sort((a, b) => -(a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : (a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0)));
+    }
     res.send(createTable(data, 'reviewed'));
   }).catch(err => {
-    res.json({error: err.message});
+    res.json({ error: err.message });
   });
 })
 
@@ -315,6 +313,11 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
       query.author = req.query.author;
     }
     utopian_api.getPosts(query).then(data => {
+      if (req.query.sortBy === "score") {
+        data.results = data.results.sort((a, b) => -(a.json_metadata.score < b.json_metadata.score ? -1 : (a.json_metadata.score > b.json_metadata.score ? 1 : 0)));
+      } else if (req.query.sortBy === "influence") {
+        data.results = data.results.sort((a, b) => -(a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : (a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0)));
+      }
       res.send(createTable(data, "pending"));
     }).catch(err => {
       res.json({error: err.message});
