@@ -262,6 +262,31 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
   });
 });
 
+router.get(UTOPISTA_POSTS + '/reviewed/:category/table', function(req, res) {
+  const category = req.params.category;
+  const limit = 50;
+
+  const query = {
+    type: category || 'all',
+    limit: Number(req.query.limit) || limit,
+    skip: Number(req.query.skip) || 0,
+    status: 'reviewed'
+  };
+
+  utopian_api.getPosts(query).then(data => {
+    // console.log(data[0])
+    // if (req.params.sortBy) {
+    //   if (req.params.sortBy === "score") {
+    //     data.data_results = data.data_results.sort((a, b) => +a.json_metadata.score - (+b.json_metadata.score));
+    //     // console.log(data[0])
+    //   }
+    // }
+    res.send(createTable(data, 'reviewed'));
+  }).catch(err => {
+    res.json({error: err.message});
+  });
+})
+
 router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
   const category = req.params.category;
   const limit = 50;
@@ -290,14 +315,14 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
       query.author = req.query.author;
     }
     utopian_api.getPosts(query).then(data => {
-      res.send(createTable(data));
+      res.send(createTable(data, "pending"));
     }).catch(err => {
       res.json({error: err.message});
     });
   }
 });
 
-function createTable(data) {
+function createTable(data, status) {
   let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
     '<table><thead><tr>' +
     '<th>Category</th>' +
@@ -323,7 +348,7 @@ function createTable(data) {
       '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
       '<td>' + (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0) + '</td>' +
       '<td>' + (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0) + '</td>' +
-      '<td>' + voteQueueStatus(post) + '</td>' +
+      '<td>' + voteQueueStatus(post, status) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
   }
@@ -332,22 +357,29 @@ function createTable(data) {
   return html;
 }
 
-function voteQueueStatus(post) {
-  let status = 'Not in queue';
-  if (post.json_metadata && post.json_metadata.score >= 80 && post.json_metadata.total_influence >= 60) {
-    status = 'To be in queue';
+function voteQueueStatus(post, status) {
+  let msg = 'Not in queue';
+  if (post.json_metadata && (status === "pending" ? post.json_metadata.total_influence >= 60 && post.json_metadata.score >= 80 : post.json_metadata.total_influence > 0 && post.json_metadata.score > 0)) {
+    msg = 'To be in queue';
     if (post.created <= new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) {
-      status = 'In queue';
-      if (post.active_votes) {
-        post.active_votes.forEach(vote => {
-          if (vote.voter === 'utopian-io') {
-            status = 'Voted';
-          }
-        })
-      }
+      msg = 'In queue';
+    }
+    if (post.active_votes) {
+      post.active_votes.forEach(vote => {
+        if (vote.voter === 'utopian-io') {
+          msg = 'Voted';
+        }
+      })
     }
   }
-  return status;
+  else if (post.active_votes) {
+    post.active_votes.forEach(vote => {
+      if (vote.voter === 'utopian-io') {
+        msg = 'Voted';
+      }
+    })
+  }
+  return msg;
 }
 
 router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
