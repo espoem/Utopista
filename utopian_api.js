@@ -403,12 +403,9 @@ utopian.getPostsByGithubProject = (repoName, options) => {
  */
 utopian.getGithubRepoIdByRepoName = (repoName) => {
   return new Promise((resolve, reject) => {
-    console.log('calling github api');
     requestGithubApi(GITHUB_REPO_URL + repoName).then((data) => {
-      console.log('called github api');
       resolve(JSON.parse(data).id);
     }).catch((err) => {
-      // console.log('error in getting github repo', GITHUB_REPO_URL + repoName);
       reject(err);
     });
   });
