@@ -11,20 +11,20 @@ const UTOPIAN_BASE_URL = 'https://utopian.io';
 // ENDPOINTS
 
 // var UTOPIAN_API_ENDPOINT = 'https://api.utopian.io/api';
-var UTOPISTA_API_ENDPOINT = UTOPISTA_BASE_URL + '/api';
-var UTOPISTA_MODERATORS = '/moderators';
-var UTOPISTA_SUPERVISORS = '/supervisors';
-var UTOPISTA_TEAMS = '/teams';
-var UTOPISTA_POSTS = '/posts';
-var UTOPISTA_POSTS_STATS = UTOPISTA_POSTS + '/stats';
-var UTOPISTA_POSTS_UNREVIEWED = UTOPISTA_POSTS + '/unreviewed';
-var UTOPISTA_SPONSORS = '/sponsors';
-var UTOPISTA_STATS = '/stats';
+// var UTOPISTA_API_ENDPOINT = UTOPISTA_BASE_URL + '/api';
+const UTOPISTA_MODERATORS = '/moderators';
+const UTOPISTA_SUPERVISORS = '/supervisors';
+const UTOPISTA_TEAMS = '/teams';
+const UTOPISTA_POSTS = '/posts';
+const UTOPISTA_POSTS_STATS = UTOPISTA_POSTS + '/stats';
+const UTOPISTA_POSTS_UNREVIEWED = UTOPISTA_POSTS + '/unreviewed';
+const UTOPISTA_SPONSORS = '/sponsors';
+const UTOPISTA_STATS = '/stats';
 
 // API INFO
 
 router.get('/', function (req, res) {
-  var response = {
+  const response = {
     app: 'utopista',
     author: 'espoem',
     routes: {
@@ -89,14 +89,14 @@ router.get(UTOPISTA_SPONSORS, function (req, res) {
   utopian_api.getSponsors()
     .then(function (sponsors) {
       res.json(sponsors);
-    });
+    }).catch(err => res.json({error: err.message}));
 });
 
 router.get(UTOPISTA_SPONSORS + '/:name', function (req, res) {
   utopian_api.getSponsor(req.params.name)
     .then(function (sponsor) {
       res.json(sponsor);
-    });
+    }).catch(err => res.json({error: err.message}));
 });
 
 // TEAMS ROUTES
@@ -131,43 +131,10 @@ router.get('/users/:user', function (req, res) {
   });
 });
 
-// // POSTS ROUTE
-// router.get(UTOPISTA_POSTS, function (req, res) {
-//   var maxLimit = 20;
-//   var q = req.query;
-//   var limit = Number(q.limit);
-//   limit = limit > 0 ? limit : maxLimit;
-//   // limit = limit > 100 ? 100 : limit; // temporary restriction
-//   var query = {
-//     limit: limit > maxLimit ? maxLimit : limit,
-//     skip: Number(q.skip) || 0,
-//     section: q.section || 'all',
-//     type: q.type || q.category || 'all',
-//     sortBy: q.sortBy || 'created',
-//     filterBy: q.filterBy || 'any',
-//     status: q.status || 'any'
-//   };
-
-//   var auxLimit = limit;
-//   var promises = [];
-//   while (auxLimit > 0) {
-//     promises.push(utopian_api.getPosts(query));
-//     query.skip = Number(query.skip) + maxLimit;
-//     auxLimit -= maxLimit;
-//     query.limit = Math.min(auxLimit, maxLimit);
-//   }
-
-//   Promise.all(promises).then(function (posts) {
-//     var data = posts ? posts[0] : {total: 0, results: []};
-//     for (var i = 1; i < posts.length; i++) {
-//       data.results = data.results.concat(posts[i].results);
-//     }
-
-//     res.json(data);
-//   }).catch(function (err) {
-//     res.json({error: err.message});
-//   });
-// });
+// POSTS ROUTE
+router.get(UTOPISTA_POSTS, function (req, res) {
+  res.json({error: 'This endpoint is not implemented'});
+});
 
 router.get(UTOPISTA_POSTS_STATS, function (req, res) {
   utopian_api.getPostsReviewStats().then(data => {
@@ -177,14 +144,16 @@ router.get(UTOPISTA_POSTS_STATS, function (req, res) {
   });
 });
 
-router.get(UTOPISTA_POSTS_UNREVIEWED, function (req, res) {
-  var promises = [];
-  var response = {
+router.get(UTOPISTA_POSTS + '/:status', function (req, res) {
+  let promises = [];
+  let response = {
     categories: {}
   };
 
+  const status = constants.STATUS_MAPPER[req.params.status];
+
   constants.CATEGORIES.forEach(function (category) {
-    promises.push(unreviewedPostsCountByCategory(category));
+    promises.push(utopian_api.postsCountByCategoryAndStatus(category, status));
   });
 
   Promise.all(promises).then(function (data) {
@@ -203,22 +172,43 @@ router.get(UTOPISTA_POSTS_UNREVIEWED, function (req, res) {
   });
 });
 
-router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
-  const category = req.params.category;
-  const limit = 50;
-
-  const query = {
-    type: category || 'all',
-    limit: Number(req.query.limit) || limit,
-    skip: Number(req.query.skip) || 0,
-    filterBy: 'review'
+/**
+ * Get reduced post object.
+ * @param post Utopian post record
+ * @returns {{author: string|*, title, createdAt: *, category, project: string, score: number, influence: number, scorers: number, _links: {utopian: string}}}
+ */
+function createReducedPostObject(post) {
+  return {
+    author: post.author,
+    title: post.title,
+    createdAt: post.created,
+    category: post.json_metadata.type,
+    project: ( post.json_metadata.repository ? post.json_metadata.repository.full_name : '' ),
+    score: ( post.json_metadata.score ? +post.json_metadata.score : 0 ),
+    influence: ( post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0 ),
+    scorers: ( post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0 ),
+    _links: {
+      utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
+    }
   };
+}
 
-  // console.log(query);
-  // console.log(category);
-  // console.log(req.query.skip);
+router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
+  const category = req.params.category;
+  const limit = 25;
+  const query = {
+    type: category,
+    limit: Number(req.query.limit) || limit,
+    skip: Number(req.query.skip) || 0
+  };
+  const status = constants.STATUS_MAPPER[req.params.status];
+  if (status === 'pending') {
+    query.filterBy = 'review';
+  } else {
+    query.status = status;
+  }
 
-  let result = {
+  let data = {
     category: category,
     total: 0,
     results: [],
@@ -227,105 +217,66 @@ router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category', function (req, res) {
     }
   };
 
-  utopian_api.getPosts(query).then(data => {
-    result.total = data.total;
-    for (const post of data.results) {
-      result.results.push({
-        author: post.author,
-        title: post.title,
-        createdAt: post.created,
-        category: post.json_metadata.type,
-        project: (post.json_metadata.repository ? post.json_metadata.repository.full_name : ""),
-        score: (post.json_metadata.score ? +post.json_metadata.score : 0),
-        influence : (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0),
-        scorers:  (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0),
-        _links: {
-          utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
-        }
-      });
-    }
+  const table = req.params.table;
 
-    let skip_next = query.skip + query.limit;
-    if (skip_next <= result.total) {
-      result._links.next = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_next}`;
-    }
-
-    let skip_prev = Math.max(query.skip - query.limit, 0);
-    if (query.skip > 0) {
-      result._links.prev = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_prev}`;
-    }
-
-    res.json(result);
-  }).catch(err => {
-    // res.json({error: err.message});
-    res.json('Big Error');
-  });
-});
-
-router.get(UTOPISTA_POSTS + '/reviewed/:category/table', function(req, res) {
-  const category = req.params.category;
-  const limit = 50;
-
-  const query = {
-    type: category || 'all',
-    limit: Number(req.query.limit) || limit,
-    skip: Number(req.query.skip) || 0,
-    status: 'reviewed'
-  };
-
-  utopian_api.getPosts(query).then(data => {
-    if (req.query.sortBy === "score") {
-      data.results = data.results.sort((a, b) => -(a.json_metadata.score < b.json_metadata.score ? -1 : (a.json_metadata.score > b.json_metadata.score ? 1 : 0)));
-    } else if (req.query.sortBy === "influence") {
-      data.results = data.results.sort((a, b) => -(a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : (a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0)));
-    }
-    res.send(createTable(data, 'reviewed'));
-  }).catch(err => {
-    res.json({ error: err.message });
-  });
-})
-
-router.get(UTOPISTA_POSTS_UNREVIEWED + '/:category/table', function (req, res) {
-  const category = req.params.category;
-  const limit = 50;
-
-  const query = {
-    type: category || 'all',
-    limit: Number(req.query.limit) || limit,
-    skip: Number(req.query.skip) || 0,
-    filterBy: 'review'
-  };
-
+  let p;
   if (req.query.project) {
-    utopian_api.getGithubRepoIdByRepoName(req.query.project).then(id => {
+    p = utopian_api.getGithubRepoIdByRepoName(req.query.project);
+  } else if (req.query.author) {
+    p = Promise.resolve(-1);
+  } else {
+    p = Promise.resolve(0);
+  }
+
+  p.then(id => {
+    if (id > 0) {
       query.projectId = id;
       query.section = 'project';
       query.platform = 'github';
-      utopian_api.getPosts(query).then(data => {
-        res.send(createTable(data));
-      }).catch(err => {
-        res.json({error: err});
-      });
-    }).catch(err => res.json({error: err.message}));
-  } else {
-    if (req.query.author) {
+    } else if (id === -1) {
       query.section = 'author';
       query.author = req.query.author;
     }
-    utopian_api.getPosts(query).then(data => {
-      if (req.query.sortBy === "score") {
-        data.results = data.results.sort((a, b) => -(a.json_metadata.score < b.json_metadata.score ? -1 : (a.json_metadata.score > b.json_metadata.score ? 1 : 0)));
-      } else if (req.query.sortBy === "influence") {
-        data.results = data.results.sort((a, b) => -(a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : (a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0)));
+
+    utopian_api.getPosts(query).then(d => {
+      data.results = d.results;
+      
+      if (req.query.sortBy === 'score') {
+        data.results.sort((a, b) => -( a.json_metadata.score < b.json_metadata.score ? -1 : ( a.json_metadata.score > b.json_metadata.score ? 1 : 0 ) ));
+      } else if (req.query.sortBy === 'influence') {
+        data.results.sort((a, b) => -( a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : ( a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0 ) ));
       }
-      res.send(createTable(data, "pending"));
+
+      if (!table) {
+        data.total = d.total;
+        
+        for (let i = 0; i < data.results.length; i++) {
+          data.results[i] = createReducedPostObject(data.results[i]);
+        }
+
+        let skip_next = query.skip + query.limit;
+        if (skip_next <= data.total) {
+          data._links.next = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_next}`;
+        }
+
+        let skip_prev = Math.max(query.skip - query.limit, 0);
+        if (query.skip > 0) {
+          data._links.prev = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_prev}`;
+        }
+
+        res.json(data);
+      } else if (table === 'table') {
+        res.send(createTable(data.results, status));
+      } else {
+        throw new Error('Unsupported route parameter ' + table);
+      }
     }).catch(err => {
       res.json({error: err.message});
     });
-  }
+  });
 });
 
-function createTable(data, status) {
+function createTable(posts, status) {
   let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
     '<table><thead><tr>' +
     '<th>Category</th>' +
@@ -340,17 +291,17 @@ function createTable(data, status) {
     '<th>Link</th>' +
     '</tr></thead><tbody>';
 
-  for (const post of data.results) {
+  for (const post of posts) {
     const link = [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/');
     html += '<tr>' +
       '<td>' + post.json_metadata.type + '</td>' +
       '<td>' + post.author + '</td>' +
       '<td>' + post.title + '</td>' +
       '<td>' + post.created + '</td>' +
-      '<td>' + (post.json_metadata.repository ? post.json_metadata.repository.full_name : "") + '</td>' +
-      '<td>' + (post.json_metadata.score ? +post.json_metadata.score : 0) + '</td>' +
-      '<td>' + (post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0) + '</td>' +
-      '<td>' + (post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0) + '</td>' +
+      '<td>' + ( post.json_metadata.repository ? post.json_metadata.repository.full_name : '' ) + '</td>' +
+      '<td>' + ( post.json_metadata.score ? +post.json_metadata.score : 0 ) + '</td>' +
+      '<td>' + ( post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0 ) + '</td>' +
+      '<td>' + ( post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0 ) + '</td>' +
       '<td>' + voteQueueStatus(post, status) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
@@ -362,7 +313,7 @@ function createTable(data, status) {
 
 function voteQueueStatus(post, status) {
   let msg = 'Not in queue';
-  if (post.json_metadata && (status === "pending" ? post.json_metadata.total_influence >= 60 && post.json_metadata.score >= 80 : post.json_metadata.total_influence > 0 && post.json_metadata.score > 0)) {
+  if (post.json_metadata && ( status === 'pending' ? post.json_metadata.total_influence >= 60 && post.json_metadata.score >= 80 : post.json_metadata.total_influence > 0 && post.json_metadata.score > 0 )) {
     msg = 'To be in queue';
     if (post.created <= new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) {
       msg = 'In queue';
@@ -372,7 +323,7 @@ function voteQueueStatus(post, status) {
         if (vote.voter === 'utopian-io') {
           msg = 'Voted';
         }
-      })
+      });
     }
   }
   else if (post.active_votes) {
@@ -380,7 +331,7 @@ function voteQueueStatus(post, status) {
       if (vote.voter === 'utopian-io') {
         msg = 'Voted';
       }
-    })
+    });
   }
   return msg;
 }
@@ -392,53 +343,5 @@ router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
     res.json({error: err});
   });
 });
-
-function unreviewedPostsCountByCategory(category) {
-  const query = {
-    limit: 1,
-    type: category || 'all',
-    filterBy: 'review'
-  };
-
-  return new Promise(function (resolve, reject) {
-    utopian_api.getPosts(query).then(function (result) {
-      resolve(result.total);
-    }).catch(function (err) {
-      reject(err);
-    });
-  });
-}
-
-function postsPendingCountByCategory(category, moderators) {
-  return new Promise((resolve, reject) => {
-    let query = {
-      limit: 1,
-      type: category,
-      status: 'pending'
-    };
-    let total = 0;
-    let promises = [];
-    moderators.forEach(moderator => {
-      query.moderator = moderator;
-      // console.log(category, moderator);
-      promises.push(utopian_api.getPosts({
-        limit: 1,
-        type: category,
-        status: 'pending',
-        moderator: moderator
-      }));
-    });
-
-    Promise.all(promises).then(data => {
-      data.forEach(count => {
-        // console.log(total);
-        total += count;
-      });
-      resolve(total);
-    }).catch(err => {
-      reject(err);
-    });
-  });
-}
 
 module.exports = router;

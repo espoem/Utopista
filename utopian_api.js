@@ -183,7 +183,7 @@ utopian.getPostsReviewStats = () => {
           approved: data[3 * i],
           rejected: data[3 * i + 1],
           pending: data[3 * i + 2],
-          _links: {}
+          // _links: {}
         };
       }
 

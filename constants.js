@@ -25,4 +25,11 @@ consts.CATEGORIES = [
   'task-documentation'
 ];
 
+consts.STATUS_MAPPER = {
+  reviewed: 'reviewed',
+  flagged: 'flagged',
+  pending: 'pending',
+  unreviewed: 'pending'
+};
+
 module.exports = consts;
