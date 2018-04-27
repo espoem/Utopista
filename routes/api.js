@@ -339,7 +339,7 @@ function voteQueueStatus(post, status) {
   return msg;
 }
 
-router.get(UTOPISTA_POSTS + '/:author/:post', function (req, res) {
+router.get('/users/:author/:post', function (req, res) {
   utopian_api.getPost(req.params.author, req.params.post).then(function (post) {
     res.json(post);
   }).catch(err => {
