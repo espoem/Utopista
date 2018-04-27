@@ -313,7 +313,7 @@ function createTable(posts, status) {
 
 function voteQueueStatus(post, status) {
   let msg = 'Not in queue';
-  if (post.json_metadata && ( status === 'pending' ? post.json_metadata.total_influence >= 60 && post.json_metadata.score >= 80 : post.json_metadata.total_influence > 0 && post.json_metadata.score > 0 )) {
+  if (post.json_metadata && ( status === 'pending' ? post.json_metadata.total_influence >= 60 && post.json_metadata.score >= 80 : post.json_metadata.total_influence > 0 && post.json_metadata.score > 0 && status !== 'flagged' )) {
     msg = 'To be in queue';
     if (post.created <= new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) {
       msg = 'In queue';
@@ -330,6 +330,9 @@ function voteQueueStatus(post, status) {
     post.active_votes.forEach(vote => {
       if (vote.voter === 'utopian-io') {
         msg = 'Voted';
+        if (vote.percent === 0) {
+          msg = 'Unvoted';
+        }
       }
     });
   }
