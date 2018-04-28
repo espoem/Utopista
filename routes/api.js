@@ -2,6 +2,7 @@ const router = require('express').Router();
 const constants = require('../constants');
 const utopian_api = require('../utopian_api');
 const config = require('../config');
+const comparator = require('../helpers/comparator');
 
 // CONSTANTS
 
@@ -240,11 +241,31 @@ router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
 
     utopian_api.getPosts(query).then(d => {
       data.results = d.results;
-      
-      if (req.query.sortBy === 'score') {
-        data.results.sort((a, b) => -( a.json_metadata.score < b.json_metadata.score ? -1 : ( a.json_metadata.score > b.json_metadata.score ? 1 : 0 ) ));
-      } else if (req.query.sortBy === 'influence') {
-        data.results.sort((a, b) => -( a.json_metadata.total_influence < b.json_metadata.total_influence ? -1 : ( a.json_metadata.total_influence > b.json_metadata.total_influence ? 1 : 0 ) ));
+      let sortOrder = -1;
+      let sortOption = req.query.sortBy;
+      if (sortOption && sortOption[0] === '-') {
+        sortOrder *= -1;
+        sortOption = sortOption.substr(1);
+      }
+
+      switch (sortOption) {
+        case 'score':
+          data.results.sort((a, b) => sortOrder * comparator.comparatorNumeric(getPostTotalScore(a), getPostTotalScore(b)));
+          break;
+        case 'influence':
+          data.results.sort((a, b) => sortOrder * comparator.comparatorNumeric(getPostTotalInfluence(a), getPostTotalInfluence(b)));
+          break;
+        case 'author':
+          data.results.sort((a, b) => sortOrder * comparator.comparatorString(a.author, b.author));
+          break;
+        case 'project':
+          data.results.sort((a, b) => sortOrder * comparator.comparatorString(getPostGithubRepoName(a), getPostGithubRepoName(b)));
+          break;
+        case 'scorers':
+          data.results.sort((a, b) => sortOrder * comparator.comparatorNumeric(getScorersCount(a), getScorersCount(b)));
+          break;
+        default:
+          break;
       }
 
       if (!table) {
@@ -276,6 +297,22 @@ router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
   });
 });
 
+function getPostGithubRepoName(post) {
+  return ( post.json_metadata.repository ? post.json_metadata.repository.full_name : '' );
+}
+
+function getPostTotalInfluence(post) {
+  return ( post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0 );
+}
+
+function getPostTotalScore(post) {
+  return ( post.json_metadata.score ? +post.json_metadata.score : 0 );
+}
+
+function getScorersCount(post) {
+  return ( post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0 );
+}
+
 function createTable(posts, status) {
   let html = '<style>table {border-collapse: collapse;}  table, th, td {padding: 5px; border: 1px solid black;}</style>' +
     '<table><thead><tr>' +
@@ -298,10 +335,10 @@ function createTable(posts, status) {
       '<td>' + post.author + '</td>' +
       '<td>' + post.title + '</td>' +
       '<td>' + post.created + '</td>' +
-      '<td>' + ( post.json_metadata.repository ? post.json_metadata.repository.full_name : '' ) + '</td>' +
-      '<td>' + ( post.json_metadata.score ? +post.json_metadata.score : 0 ) + '</td>' +
-      '<td>' + ( post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0 ) + '</td>' +
-      '<td>' + ( post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0 ) + '</td>' +
+      '<td>' + getPostGithubRepoName(post) + '</td>' +
+      '<td>' + getPostTotalScore(post) + '</td>' +
+      '<td>' + getPostTotalInfluence(post) + '</td>' +
+      '<td>' + getScorersCount(post) + '</td>' +
       '<td>' + voteQueueStatus(post, status) + '</td>' +
       '<td><a href="' + link + '">View Post</a></td>' +
       '</tr>';
