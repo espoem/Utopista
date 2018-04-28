@@ -383,12 +383,12 @@ utopian.getSponsor = (name) => {
 utopian.getPostsByGithubProject = (repoName, options) => {
   return new Promise((resolve, reject) => {
     return utopian.getGithubRepoIdByRepoName(repoName)
-      .then(projectId => {
+      .then(id => {
         return utopian.getPosts(Object.assign({
           section: 'project',
           sortBy: 'created',
           platform: 'github',
-          projectId,
+          projectId: id,
           type: 'all'
         }, options || {})).then(resolve).catch(reject);
       }).catch(reject);
