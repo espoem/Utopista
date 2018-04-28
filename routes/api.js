@@ -202,6 +202,10 @@ router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
     limit: Number(req.query.limit) || limit,
     skip: Number(req.query.skip) || 0
   };
+  if (query.limit > 1000) {
+    query.limit = 1000; // temporary max limit to 1000
+  }
+
   const status = constants.STATUS_MAPPER[req.params.status];
   if (status === 'pending') {
     query.filterBy = 'review';
