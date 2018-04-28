@@ -173,7 +173,7 @@ utopian.getPostsReviewStats = () => {
     constants.CATEGORIES.forEach(category => {
       promises.push(utopian.postsCountByCategoryAndStatus(category, 'reviewed'));
       promises.push(utopian.postsCountByCategoryAndStatus(category, 'flagged'));
-      promises.push(utopian.postsCountByCategoryAndStatus(category, 'pending'));  // bug: https://github.com/utopian-io/api.utopian.io/issues/100
+      promises.push(utopian.postsCountByCategoryAndStatus(category, 'pending'));
     });
 
     Promise.all(promises).then(data => {
