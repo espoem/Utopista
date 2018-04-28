@@ -132,6 +132,14 @@ router.get('/users/:user', function (req, res) {
   });
 });
 
+router.get('/users/:user/stats', function (req, res) {
+  utopian_api.getUserStats(req.params.user).then(data => {
+    res.json(data);
+  }).catch(err => {
+    res.json({error: err.message});
+  });
+});
+
 // POSTS ROUTE
 router.get(UTOPISTA_POSTS, function (req, res) {
   res.json({error: 'This endpoint is not implemented'});

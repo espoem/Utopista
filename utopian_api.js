@@ -437,4 +437,45 @@ utopian.getUser = (user) => {
   });
 };
 
+/**
+ * Get statistics of user's contributions.
+ * @param user user name
+ * @returns {Promise<any>}
+ */
+utopian.getUserStats = (user) => {
+  return new Promise((resolve, reject) => {
+    let promises = [];
+    let statuses = ['reviewed', 'flagged', 'pending'];
+    const query = {
+      limit: 1,
+      section: 'author',
+      author: user
+    };
+
+    for (const status of statuses) {
+      if (status === 'pending') {
+        query.status = null;
+        query.filterBy = 'review';
+      } else {
+        query.status = status;
+        query.filterBy = null;
+      }
+      promises.push(utopian.getPosts(query));
+    }
+
+    const result = {
+      account: user,
+      contributions: {}
+    };
+    Promise.all(promises).then(data => {
+      for (let i = 0; i < data.length; i++) {
+        result.contributions[statuses[i]] = data[i].total;
+      }
+      resolve(result);
+    }).catch(err => {
+      reject(err);
+    });
+  });
+};
+
 module.exports = utopian;
