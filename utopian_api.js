@@ -112,42 +112,40 @@ const requestGithubApi = url => {
  * @returns {Promise<any>} Promise object with the data {total: count_of_posts, results: array_of_post_objects}
  */
 utopian.getPosts = params => {
-  if (!params) {
-    params = {};
+  let newParams = Object.assign({}, params);
+
+  if (!newParams.limit || newParams.limit < 1) {
+    newParams.limit = 20;
+  }
+  const wanted = newParams.limit;
+
+  if (newParams.limit > 500) {
+    newParams.limit = 500;
   }
 
-  if (!params.limit || params.limit < 1) {
-    params.limit = 20;
-  }
-  const wanted = params.limit;
-
-  if (params.limit > 500) {
-    params.limit = 500;
-  }
-
-  if (!params.skip || params.skip < 0) {
-    params.skip = 0;
+  if (!newParams.skip || newParams.skip < 0) {
+    newParams.skip = 0;
   }
 
   let data = {
     total: 0,
     results: []
   };
-  let rCount = Math.ceil(wanted / params.limit);
+  let rCount = Math.ceil(wanted / newParams.limit);
 
-  async function fetch(params) {
+  async function fetch(newParams) {
     for (let i = 0; i < rCount; i++) {
       if (i > 0 && wanted > data.total) {
-        rCount = Math.ceil(data.total / params.limit);
+        rCount = Math.ceil(data.total / newParams.limit);
       }
 
       await new Promise((resolve, reject) => {
-        requestUtopianApi(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(params)).then(d => {
+        requestUtopianApi(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(newParams)).then(d => {
           let json = JSON.parse(d);
           data.total = json.total;
           data.results.push.apply(data.results, json.results);
-          params.skip += params.limit;
-          params.limit = ( params.limit + params.skip > wanted ) ? wanted % params.limit : params.limit;
+          newParams.skip += newParams.limit;
+          newParams.limit = ( newParams.limit + newParams.skip > wanted ) ? wanted % newParams.limit : newParams.limit;
           resolve();
         }).catch(err => {
           reject(err);
@@ -157,7 +155,7 @@ utopian.getPosts = params => {
   }
 
   return new Promise((resolve, reject) => {
-    fetch(params).then(_ => {
+    fetch(newParams).then(_ => {
       resolve(data);
     }).catch(err => reject(err));
   });
