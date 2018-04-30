@@ -133,19 +133,19 @@ utopian.getPosts = params => {
   };
   let rCount = Math.ceil(wanted / newParams.limit);
 
-  async function fetch(newParams) {
+  async function fetch(options) {
     for (let i = 0; i < rCount; i++) {
       if (i > 0 && wanted > data.total) {
-        rCount = Math.ceil(data.total / newParams.limit);
+        rCount = Math.ceil(data.total / options.limit);
       }
 
       await new Promise((resolve, reject) => {
-        requestUtopianApi(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(newParams)).then(d => {
+        requestUtopianApi(UTOPIAN_API_POSTS + '?' + utopian.encodeQueryData(options)).then(d => {
           let json = JSON.parse(d);
           data.total = json.total;
           data.results.push.apply(data.results, json.results);
-          newParams.skip += newParams.limit;
-          newParams.limit = ( newParams.limit + newParams.skip > wanted ) ? wanted % newParams.limit : newParams.limit;
+          options.skip += options.limit;
+          options.limit = ( options.limit + options.skip > wanted ) ? wanted % options.limit : options.limit;
           resolve();
         }).catch(err => {
           reject(err);
