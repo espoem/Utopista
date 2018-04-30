@@ -181,6 +181,10 @@ router.get(UTOPISTA_POSTS + '/:status', function (req, res) {
   });
 });
 
+function createUtopianLink(post) {
+  return [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/');
+}
+
 /**
  * Get reduced post object.
  * @param post Utopian post record
@@ -197,12 +201,12 @@ function createReducedPostObject(post) {
     influence: ( post.json_metadata.total_influence ? +post.json_metadata.total_influence : 0 ),
     scorers: ( post.json_metadata.questions && post.json_metadata.questions.voters ? post.json_metadata.questions.voters.length : 0 ),
     _links: {
-      utopian: [UTOPIAN_BASE_URL, post.category, '@' + post.author, post.permlink].join('/')
+      utopian: createUtopianLink(post)
     }
   };
 }
 
-router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
+router.get(UTOPISTA_POSTS + '/:status/:category/:format?', function (req, res) {
   const category = req.params.category;
   const limit = 25;
   const query = {
@@ -230,7 +234,7 @@ router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
     }
   };
 
-  const table = req.params.table;
+  const format = req.params.format;
 
   let p;
   if (req.query.project) {
@@ -280,28 +284,32 @@ router.get(UTOPISTA_POSTS + '/:status/:category/:table?', function (req, res) {
           break;
       }
 
-      if (!table) {
-        data.total = d.total;
-        
+      data.total = d.total;
+
+      let skip_next = query.skip + query.limit;
+      if (skip_next <= data.total) {
+        data._links.next = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_next}`;
+      }
+
+      let skip_prev = Math.max(query.skip - query.limit, 0);
+      if (query.skip > 0) {
+        data._links.prev = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_prev}`;
+      }
+
+      if (!format) {
         for (let i = 0; i < data.results.length; i++) {
           data.results[i] = createReducedPostObject(data.results[i]);
         }
-
-        let skip_next = query.skip + query.limit;
-        if (skip_next <= data.total) {
-          data._links.next = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_next}`;
-        }
-
-        let skip_prev = Math.max(query.skip - query.limit, 0);
-        if (query.skip > 0) {
-          data._links.prev = `${UTOPISTA_BASE_URL + req.originalUrl.split('?').shift()}?limit=${query.limit}&skip=${skip_prev}`;
-        }
-
         res.json(data);
-      } else if (table === 'table') {
+      } else if (format === 'table') {
         res.send(createTable(data.results, status));
+      } else if (format === 'links') {
+        for (let i = 0; i < data.results.length; i++) {
+          data.results[i] = createUtopianLink(data.results[i]);
+        }
+        res.json(data);
       } else {
-        throw new Error('Unsupported route parameter ' + table);
+        throw new Error('Unsupported route parameter ' + format);
       }
     }).catch(err => {
       res.json({error: err.message});
